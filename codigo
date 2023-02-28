@@ -1,0 +1,91 @@
+#include <ESP8266WiFi.h>   
+#include "SinricPro.h"
+#include "SinricProSwitch.h"
+
+//nomes da ssid e senha apenas representativo
+#define WIFI_SSID         "desafiodioWIFI"    
+#define WIFI_PASS         "desafiodeprojeto"
+
+#define APP_KEY           "esdsa5s45s454dsds......"      // O seu App Key é algo como "de0bxxxx-1x3x-4x3x-ax2x-5dabxxxxxxxx"
+#define APP_SECRET        "sdfsdfdfs5dfsd45s4521541....."   // O seu App Secret é algo como "5f36xxxx-x3x7-4x3x-xexe-e86724a9xxxx-4c4axxxx-3x3x-x5xe-x9x3-333d65xxxxxx"
+
+#define modocinema_ID       "5dcjhfg55f5g...."    // Algo como "5dc1564130xxxxxxxxxxxxxx"
+#define modocinema_Pin 16  // O pino fisico onde está ligado
+
+#define Lampada_ID       "5dcdf31d354fd5fd...."    // Algo como "5dc1564130xxxxxxxxxxxxxx"
+#define Lampada_Pin 5  // O pino fisico onde está ligado
+
+#define pipoqueira_ID       "5dcgf234534fg134...."    // Algo como "5dc1564130xxxxxxxxxxxxxx"
+#define pipoqueira_Pin 4  // O pino fisico onde está ligado
+
+#define arcond_ID       "5dc2435a4sfd545d...."    // Algo como "5dc1564130xxxxxxxxxxxxxx"
+#define arcond _Pin 0  // O pino fisico onde está ligado
+
+#define BAUD_RATE         9600                // Se precisar, pode trocar o baud rate
+void setupWiFi();
+void setupSinricPro();
+
+bool modocinemaState(const String &deviceId, bool &state);
+bool LampadaState(const String &deviceId, bool &state);
+bool pipoqueiraState(const String &deviceId, bool &state);
+bool arcondState(const String &deviceId, bool &state);
+
+// main setup function
+void setup() {
+  Serial.begin(BAUD_RATE); Serial.printf("\r\n\r\n");
+  setupWiFi();
+  setupSinricPro(); 
+  pinMode(modocinema_Pin, OUTPUT);
+  pinMode(Lampada_Pin, OUTPUT);
+  pinMode(pipoqueira_Pin, OUTPUT);
+  pinMode(arcond_Pin, OUTPUT);
+}
+void loop() {
+  SinricPro.handle();
+}
+bool AbajourState(const String &deviceId, bool &state) {
+  Serial.printf("O modo cinema foi %s\r\n", state?"ligado":"desligado");
+  digitalWrite(modocinema_Pin, state);
+  return true; // request handled properly
+}
+bool LampadaState(const String &deviceId, bool &state) {
+  Serial.printf("A lampada foi %s\r\n", state?"ligada":"desligada");
+  digitalWrite(Lampada_Pin, state);
+  return true; // request handled properly
+}
+bool pipoqueiraState(const String &deviceId, bool &state) {
+  Serial.printf("A pipoqueira foi %s\r\n", state?"ligada":"desligada");
+  digitalWrite(pipoqueira_Pin, state);
+  return true; // request handled properly
+}
+bool arcondState(const String &deviceId, bool &state) {
+  Serial.printf("O ar condicionado foi %s\r\n", state?"ligado":"desligado");
+  digitalWrite(arcond_Pin, state);
+  return true; // request handled properly
+}
+// setup das conexões Wifi
+void setupWiFi() {
+  Serial.printf("\r\n[Wifi]: Conectando...");
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.printf(".");
+    delay(250);
+  }
+  Serial.printf("Conectado!\r\n[WiFi]: Endereço de IP e %s\r\n", WiFi.localIP().toString().c_str());
+}
+// setup das funções para o SinricPro
+void setupSinricPro() {
+  // add devices and callbacks to SinricPro
+  SinricProSwitch &mySwitch1 = SinricPro[modocinema_ID];
+  mySwitch1.onPowerState(modocinemaState);
+  SinricProSwitch &mySwitch2 = SinricPro[Lampada_ID];
+  mySwitch2.onPowerState(LampadaState);
+  SinricProSwitch &mySwitch3 = SinricPro[pipoqueira_ID];
+  mySwitch3.onPowerState(pipoqueiraState);
+  SinricProSwitch &mySwitch4 = SinricPro[arcond_ID];
+  mySwitch4.onPowerState(arcondState);
+  // setup SinricPro
+  SinricPro.onConnected([](){ Serial.printf("Conectado a nuvem SinricPro\r\n"); }); 
+  SinricPro.onDisconnected([](){ Serial.printf("Desconectado a nuvem SinricPro\r\n"); });
+  SinricPro.begin(APP_KEY, APP_SECRET);
+}
